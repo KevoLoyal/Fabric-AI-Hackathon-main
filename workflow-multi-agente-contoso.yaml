@@ -1,0 +1,133 @@
+kind: workflow
+trigger:
+  kind: OnConversationStart
+  id: trigger_wf
+  actions:
+    - kind: SetVariable
+      id: save_user_question
+      variable: Local.UserQuestion
+      value: =System.LastMessageText
+    - kind: SetVariable
+      id: init_latest
+      variable: Local.LatestMessage
+      value: =UserMessage(Local.UserQuestion)
+    - kind: InvokeAzureAgent
+      id: supervisor_router
+      agent:
+        name: Contoso-Router-Agent
+      conversationId: =System.ConversationId
+      input:
+        messages: =Local.LatestMessage
+      output:
+        messages: Local.LatestMessage
+        autoSend: false
+    - kind: ConditionGroup
+      id: condition_routing
+      conditions:
+        - id: if_sales
+          condition: =!IsBlank(Find("[SALES]", Upper(Last(Local.LatestMessage).Text)))
+          actions:
+            - kind: SetVariable
+              id: restore_sales
+              variable: Local.LatestMessage
+              value: =UserMessage(Local.UserQuestion)
+            - kind: InvokeAzureAgent
+              id: invoke_sales
+              agent:
+                name: Contoso-Sales-Analyst
+              conversationId: =System.ConversationId
+              input:
+                messages: =Local.LatestMessage
+              output:
+                messages: Local.LatestMessage
+                autoSend: false
+            - kind: EndConversation
+              id: end_sales
+        - id: if_market
+          condition: =!IsBlank(Find("[MARKET]", Upper(Last(Local.LatestMessage).Text)))
+          actions:
+            - kind: SetVariable
+              id: restore_market
+              variable: Local.LatestMessage
+              value: =UserMessage(Local.UserQuestion)
+            - kind: InvokeAzureAgent
+              id: invoke_market
+              agent:
+                name: Contoso-Market-Research-Analyst
+              conversationId: =System.ConversationId
+              input:
+                messages: =Local.LatestMessage
+              output:
+                messages: Local.LatestMessage
+                autoSend: false
+            - kind: EndConversation
+              id: end_market
+        - id: if_credit
+          condition: =!IsBlank(Find("[CREDIT]", Upper(Last(Local.LatestMessage).Text)))
+          actions:
+            - kind: SetVariable
+              id: restore_credit
+              variable: Local.LatestMessage
+              value: =UserMessage(Local.UserQuestion)
+            - kind: InvokeAzureAgent
+              id: invoke_credit
+              agent:
+                name: Contoso-Credit-Risk-Analyst
+              conversationId: =System.ConversationId
+              input:
+                messages: =Local.LatestMessage
+              output:
+                messages: Local.LatestMessage
+                autoSend: false
+            - kind: EndConversation
+              id: end_credit
+      elseActions:
+        - kind: SetVariable
+          id: restore_all
+          variable: Local.LatestMessage
+          value: =UserMessage(Local.UserQuestion)
+        - kind: InvokeAzureAgent
+          id: invoke_sales_all
+          agent:
+            name: Contoso-Sales-Analyst
+          conversationId: =System.ConversationId
+          input:
+            messages: =Local.LatestMessage
+          output:
+            messages: Local.LatestMessage
+            autoSend: false
+        - kind: InvokeAzureAgent
+          id: invoke_market_all
+          agent:
+            name: Contoso-Market-Research-Analyst
+          conversationId: =System.ConversationId
+          input:
+            messages: =Local.LatestMessage
+          output:
+            messages: Local.LatestMessage
+            autoSend: false
+        - kind: InvokeAzureAgent
+          id: invoke_credit_all
+          agent:
+            name: Contoso-Credit-Risk-Analyst
+          conversationId: =System.ConversationId
+          input:
+            messages: =Local.LatestMessage
+          output:
+            messages: Local.LatestMessage
+            autoSend: false
+        - kind: InvokeAzureAgent
+          id: invoke_advisor
+          agent:
+            name: Contoso-Strategy-Advisor
+          conversationId: =System.ConversationId
+          input:
+            messages: =Local.LatestMessage
+          output:
+            messages: Local.LatestMessage
+            autoSend: false
+        - kind: EndConversation
+          id: end_all
+id: ""
+name: Workflow-Multi-Agente-Contoso
+description: Workflow con Router que decide la ruta
